@@ -14,10 +14,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/contact", require("./routes/contactRoutes"));
 app.use("/api/quote", require("./routes/quoteRoutes"));
 app.use("/api/appointment", require("./routes/appointmentRoutes"));
 app.use("/api/consultation", require("./routes/consultationRoutes"));
+app.use("/api/portfolio", require("./routes/portfolioRoutes"));
 
 app.get("/", (req, res) => {
   res.json({ message: "Oria Interior Server Running ✅" });
