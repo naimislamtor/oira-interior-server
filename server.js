@@ -9,10 +9,15 @@ connectDB();
 
 const app = express();
 
+// const allowedOrigins = [
+//   "http://localhost:5173",
+//   "https://www.oriainterior.com",
+//   "https://oriainterior.com",
+// ];
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://www.oriainterior.com",
-  "https://oriainterior.com",
+  "https://oriainteriorbd.com",
+  "https://www.oriainteriorbd.com",
 ];
 
 app.use(
