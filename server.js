@@ -9,11 +9,6 @@ connectDB();
 
 const app = express();
 
-// const allowedOrigins = [
-//   "http://localhost:5173",
-//   "https://www.oriainterior.com",
-//   "https://oriainterior.com",
-// ];
 const allowedOrigins = [
   "http://localhost:5173",
   "https://oriainteriorbd.com",
@@ -42,7 +37,7 @@ app.use("/api/contact", require("./routes/contactRoutes"));
 app.use("/api/quote", require("./routes/quoteRoutes"));
 app.use("/api/appointment", require("./routes/appointmentRoutes"));
 app.use("/api/consultation", require("./routes/consultationRoutes"));
-app.use("/api/portfolio", require("./routes/portfolioRoutes"));
+app.use("/api/blog", require("./routes/blogRoutes"));
 
 app.get("/", (req, res) => {
   res.json({ message: "Oria Interior Server Running ✅" });
