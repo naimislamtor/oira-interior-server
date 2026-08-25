@@ -16,7 +16,7 @@ const sendEmail = async ({ to, subject, html }) => {
     });
 
     await transporter.sendMail({
-      from: `"Orio Interior" <${process.env.EMAIL_USER}>`,
+      from: `"Oria Interior" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,

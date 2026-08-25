@@ -73,4 +73,43 @@ const setupAdmin = async (req, res) => {
   }
 };
 
-module.exports = { loginAdmin, getMe, setupAdmin };
+const forgotPassword = async (req, res) => {
+  try {
+    const adminEmail = "naimislamtor@gmail.com";
+    const currentAdmin = await Admin.findOne({});
+    
+    const { sendEmail } = require("../utils/sendEmail");
+
+    const loginUrl = `${req.headers.origin || process.env.CLIENT_URL || "https://oriainteriorbd.com"}/admin/login`;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <h2 style="color: #c9a84c;">Oria Interior - Admin Login Assistance</h2>
+        <p>Hello Naim Islam,</p>
+        <p>You requested password recovery assistance for your Oria Interior Admin Panel.</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #c9a84c; margin: 20px 0;">
+          <p style="margin: 0 0 10px 0;"><strong>Admin Email:</strong> ${currentAdmin ? currentAdmin.email : 'info@oriainteriorbd.com'}</p>
+          <p style="margin: 0;"><strong>Password:</strong> admin123</p>
+        </div>
+        <p>Log in at: <a href="${loginUrl}">${loginUrl}</a></p>
+        <p style="font-size: 12px; color: #777; margin-top: 30px;">This is an automated notification sent to your private admin email.</p>
+      </div>
+    `;
+
+    await sendEmail({
+      to: adminEmail,
+      subject: "Oria Admin Password Recovery Instructions",
+      html: htmlContent,
+    });
+
+    res.json({
+      success: true,
+      message: "Password recovery details sent to naimislamtor@gmail.com",
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ success: false, message: "Failed to send reset email." });
+  }
+};
+
+module.exports = { loginAdmin, getMe, setupAdmin, forgotPassword };
