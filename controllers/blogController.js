@@ -1,9 +1,28 @@
 const Blog = require("../models/Blog");
+const mongoose = require("mongoose");
+
+const slugify = (text) => {
+  if (!text) return "";
+  const str = text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[\s\p{P}\p{S}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+  return str || "post";
+};
 
 // @GET /api/blog (public)
 const getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
+    // Backfill slug for legacy posts if missing
+    for (let b of blogs) {
+      if (!b.slug) {
+        b.slug = slugify(b.title);
+        await b.save();
+      }
+    }
     res.json({ success: true, data: blogs });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error." });
@@ -13,7 +32,14 @@ const getAllBlogs = async (req, res) => {
 // @GET /api/blog/:id (public)
 const getBlogById = async (req, res) => {
   try {
-    const blog = await Blog.findById(req.params.id);
+    const { id } = req.params;
+    let blog;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      blog = await Blog.findById(id);
+    }
+    if (!blog) {
+      blog = await Blog.findOne({ slug: id });
+    }
     if (!blog) {
       return res
         .status(404)
@@ -42,8 +68,15 @@ const createBlog = async (req, res) => {
         .json({ success: false, message: "Blog image is required." });
     }
 
+    let slug = slugify(title);
+    const existing = await Blog.findOne({ slug });
+    if (existing) {
+      slug = `${slug}-${Date.now().toString().slice(-4)}`;
+    }
+
     const blog = await Blog.create({
       title,
+      slug,
       category,
       excerpt,
       content,
@@ -62,6 +95,14 @@ const createBlog = async (req, res) => {
 const updateBlog = async (req, res) => {
   try {
     const updateData = { ...req.body };
+    if (updateData.title) {
+      let slug = slugify(updateData.title);
+      const existing = await Blog.findOne({ slug, _id: { $ne: req.params.id } });
+      if (existing) {
+        slug = `${slug}-${Date.now().toString().slice(-4)}`;
+      }
+      updateData.slug = slug;
+    }
     if (req.file) {
       updateData.image = req.file.filename;
     }
