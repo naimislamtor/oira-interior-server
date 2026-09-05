@@ -48,7 +48,7 @@ const createPortfolio = async (req, res) => {
       location,
       year,
       description,
-      featured: featured === "true",
+      featured: featured === "true" || featured === true,
       image: req.file.filename,
     });
 
@@ -66,7 +66,7 @@ const updatePortfolio = async (req, res) => {
   try {
     const updateData = { ...req.body };
     if (updateData.featured !== undefined) {
-      updateData.featured = updateData.featured === "true";
+      updateData.featured = updateData.featured === "true" || updateData.featured === true;
     }
     if (req.file) {
       updateData.image = req.file.filename;
