@@ -35,21 +35,19 @@ async function sendMetaGraphApiMessage(recipientPsid, textReply) {
 
 // Meta (Facebook / Instagram) Webhook Verification (GET)
 exports.verifyMetaWebhook = (req, res) => {
-  const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || "oria_interior_meta_secret_2026";
-
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  if (mode && token) {
-    if (mode === "subscribe") {
-      console.log("[Webhook] Meta Webhook Verified Successfully!");
-      addLiveLog("Facebook Messenger", "WEBHOOK_VERIFY", "Meta Console", "Webhook Verification Request", "Verified Successfully", "Success");
-      return res.status(200).send(challenge);
-    }
+  if (mode && token && mode === "subscribe") {
+    console.log("[Webhook] Meta Webhook Verified Successfully!");
+    addLiveLog("Facebook Messenger", "WEBHOOK_VERIFY", "Meta Console", "Webhook Verification Request", "Verified Successfully", "Success");
+    res.setHeader("Content-Type", "text/plain");
+    return res.status(200).send(String(challenge));
   }
   return res.status(400).send("Bad request");
 };
+
 
 // Meta (Facebook Messenger / Instagram DM) Event Receiver (POST)
 exports.handleMetaWebhook = async (req, res) => {
