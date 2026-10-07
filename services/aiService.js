@@ -4,10 +4,8 @@ const KnowledgeRule = require("../models/KnowledgeRule");
 const Portfolio = require("../models/Portfolio");
 
 const GEMINI_MODELS = [
-  "gemini-1.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash-8b",
-  "gemini-1.5-pro",
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
 ];
 
 /**
@@ -54,8 +52,8 @@ function getSmartFallbackReply(userMessage) {
     return "ওরিয়া ইন্টেরিয়রের এই অফিশিয়াল ওয়েবসাইটটি অত্যন্ত দক্ষতার সাথে ডেভেলপ করেছেন নাঈম ইসলাম (Naim Islam / NetHist)। পোর্টফোলিও লিংক: https://nethist.online";
   }
 
-  // Managing Director / CEO / পরিচালক / এমডি
-  if (msg.includes("পরিচালক") || msg.includes("পরিচালনা") || msg.includes("মালিক") || msg.includes("md") || msg.includes("ceo") || msg.includes("founder")) {
+  // Managing Director / CEO / পরিচালক / এমডি / ব্যবস্থাপনা পরিচালক
+  if (msg.includes("পরিচালক") || msg.includes("পরিচালনা") || msg.includes("মালিক") || msg.includes("md") || msg.includes("ceo") || msg.includes("founder") || msg.includes("porichalok") || msg.includes("porichalona") || msg.includes("babosthapona") || msg.includes("ব্যবস্থাপনা")) {
     return "ওরিয়া ইন্টেরিয়রের প্রতিষ্ঠাতা ও ব্যবস্থাপনা পরিচালক (Managing Director & Founder) হলেন MD Sahin Hossain। আমাদের কোম্পানি সম্পর্কে বিস্তারিত জানতে ভিজিট করুন: https://oriainteriorbd.com/about";
   }
 
@@ -196,19 +194,37 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
   }
 
   // D. Fetch past conversation history (last 10 messages)
-  let historyMessages = [];
+  let contentsPayload = [];
   if (sessionId) {
     try {
       const pastHistory = await ChatMessage.find({ sessionId }).sort({ createdAt: -1 }).limit(10);
       pastHistory.reverse();
-      historyMessages = pastHistory.map((m) => ({
-        role: m.role === "user" ? "user" : "model",
-        parts: [{ text: m.text }],
-      }));
+
+      let expectedRole = "user";
+      for (const m of pastHistory) {
+        if (!m.text || !m.text.trim()) continue;
+        const role = m.role === "user" ? "user" : "model";
+        if (role === expectedRole) {
+          contentsPayload.push({
+            role,
+            parts: [{ text: m.text.trim() }],
+          });
+          expectedRole = expectedRole === "user" ? "model" : "user";
+        }
+      }
     } catch (err) {
       console.error("Error loading chat history:", err.message);
     }
   }
+
+  if (contentsPayload.length > 0 && contentsPayload[contentsPayload.length - 1].role === "user") {
+    contentsPayload.pop();
+  }
+
+  contentsPayload.push({
+    role: "user",
+    parts: [{ text: userMessage.trim() }],
+  });
 
   // E. STEP 2: System Prompt Definition (Strictly Oria Interior Representative - NO mention of AI/Bot)
   const systemPromptText = `আপনি "Oria Interior" (ওরিয়া ইন্টেরিয়র)-এর একজন অফিশিয়াল প্রফেশনাল আর্কিটেকচার ও ইন্টেরিয়র এক্সিকিউটিভ প্রতিনিধি।
@@ -261,11 +277,6 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
   }
 
   // Call Gemini REST API
-  const contentsPayload = [
-    ...historyMessages.slice(0, historyMessages.length - 1),
-    { role: "user", parts: [{ text: userMessage }] },
-  ];
-
   const requestBody = {
     systemInstruction: { parts: [{ text: systemPromptText }] },
     contents: contentsPayload,
@@ -285,7 +296,7 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
       if (response.ok) {
         const data = await response.json();
         const candidateParts = data?.candidates?.[0]?.content?.parts || [];
-        const textPart = candidateParts.find((p) => p.text && !p.thought) || candidateParts[0];
+        const textPart = candidateParts.find((p) => p.text && !p.thought) || candidateParts[candidateParts.length - 1];
         const aiResponseText = textPart?.text;
 
         if (aiResponseText && aiResponseText.trim()) {
@@ -302,6 +313,9 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
           }
           return finalReply;
         }
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        console.warn(`[AI Service] Model ${modelName} returned HTTP ${response.status}:`, errData.error?.message || response.statusText);
       }
     } catch (error) {
       console.log(`[AI Service] Error with model ${modelName}:`, error.message);
