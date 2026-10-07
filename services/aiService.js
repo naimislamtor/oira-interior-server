@@ -51,12 +51,12 @@ function getSmartFallbackReply(userMessage) {
 
   // Developer / ডেভলপার
   if (msg.includes("developer") || msg.includes("ডেভেলপার") || msg.includes("ডেভলপার") || msg.includes("বানিয়েছে") || msg.includes("তৈরি")) {
-    return "ওরিয়া ইন্টেরিয়রের অফিশিয়াল ওয়েবসাইট ডেভেলপমেন্ট ও প্রযুক্তি পার্টনার NetHist (https://nethist.online)।";
+    return "ওরিয়া ইন্টেরিয়রের এই অফিশিয়াল ওয়েবসাইটটি অত্যন্ত দক্ষতার সাথে ডেভেলপ করেছেন নাঈম ইসলাম (Naim Islam / NetHist)। পোর্টফোলিও লিংক: https://nethist.online";
   }
 
   // Managing Director / CEO / পরিচালক / এমডি
-  if (msg.includes("পরিচালক") || msg.includes("পরিচালনা") || msg.includes("মালিক") || msg.includes("md") || msg.includes("ceo") || msg.includes("founder") || msg.includes("পরিচালক কে")) {
-    return "ওরিয়া ইন্টেরিয়রের প্রতিষ্ঠাতা ও ব্যবস্থাপনা পরিচালক (Managing Director) হলেন ইঞ্জিনিয়ার নাঈম ইসলাম (Engr. Naim Islam)। আমাদের পরিচালনা টিম সম্পর্কে বিস্তারিত জানতে ভিজিট করুন: https://oriainteriorbd.com/about";
+  if (msg.includes("পরিচালক") || msg.includes("পরিচালনা") || msg.includes("মালিক") || msg.includes("md") || msg.includes("ceo") || msg.includes("founder")) {
+    return "ওরিয়া ইন্টেরিয়রের প্রতিষ্ঠাতা ও ব্যবস্থাপনা পরিচালক (Managing Director & Founder) হলেন MD Sahin Hossain। আমাদের কোম্পানি সম্পর্কে বিস্তারিত জানতে ভিজিট করুন: https://oriainteriorbd.com/about";
   }
 
   // About Us / সম্পর্কে / বিস্তারিত
@@ -214,8 +214,8 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
   const systemPromptText = `আপনি "Oria Interior" (ওরিয়া ইন্টেরিয়র)-এর একজন অফিশিয়াল প্রফেশনাল আর্কিটেকচার ও ইন্টেরিয়র এক্সিকিউটিভ প্রতিনিধি।
 
 কোম্পানি ও টিম পরিচিতি:
-- প্রতিষ্ঠাতা ও ব্যবস্থাপনা পরিচালক (Managing Director & Founder): ইঞ্জিনিয়ার নাঈম ইসলাম (Engr. Naim Islam)।
-- ওয়েবসাইট ডেভেলপমেন্ট পার্টনার (Developer): NetHist (https://nethist.online)।
+- প্রতিষ্ঠাতা ও ব্যবস্থাপনা পরিচালক (Managing Director & Founder): MD Sahin Hossain (আমাদের পরিচালনা টিম পরিচিতি পেজ: https://oriainteriorbd.com/about)।
+- ওয়েবসাইট ডেভেলপার (Website Developer): নাঈম ইসলাম (Naim Islam / NetHist - https://nethist.online)।
 - প্রধান অফিস ঠিকানা: ৬৭, ইন্দিরা রোড, পশ্চিম রাজা বাজার, ঢাকা ১২১৫।
 - হটলাইন/হোয়াটসঅ্যাপ: 01334003388 (https://wa.me/8801334003388)
 - অভিজ্ঞতা: ১৩+ বছরের সফল অভিজ্ঞতা ও ১০০+ সম্পন্ন প্রজেক্ট।
@@ -240,7 +240,7 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
 গুরুত্বপূর্ণ নির্দেশনাবলী:
 ১. কখনই বলবেন না যে আপনি AI, Bot বা Automation। সর্বদা সরাসরি ওরিয়া ইন্টেরিয়র টিমের কর্মকর্তা হিসেবে উত্তর দেবেন।
 ২. উত্তর সবসময় অত্যন্ত বিনীত, প্রফেশনাল ও সহজ বাংলায় দেবেন (২৫-৫০ শব্দ)।
-৩. ডেভেলপার কে জানতে চাইলে NetHist (https://nethist.online) নাম ও লিংক দেবেন। ব্যবস্থাপনা পরিচালক কে জানতে চাইলে ইঞ্জিনিয়ার নাঈম ইসলাম (Engr. Naim Islam) নাম দেবেন।
+৩. ওয়েবসাইট ডেভেলপ করেছে কে জানতে চাইলে নাঈম ইসলাম (Naim Islam / NetHist - https://nethist.online) নাম ও লিংক দেবেন। ওরিয়া ইন্টেরিয়রের ব্যবস্থাপনা পরিচালক (MD/Founder) কে জানতে চাইলে MD Sahin Hossain নাম ও About Us পেজ লিংক (https://oriainteriorbd.com/about) দেবেন।
 ৪. কন্টাক্ট, ব্লগ, পোর্টফোলিও বা সার্ভিস পেজ দেখতে চাইলে সরাসরি সংশ্লিষ্ট পেজের পিওর URL লিংক যোগ করে দেবেন।
 ৫. যেকোনো ওয়েবসাইটের লিংক লেখার সময় লিংকের সাথে গায়ে-গায়ে কোনো বন্ধনী (parenthesis ')') বা চিহ্ন বা ডট যোগ করবেন না। লিংকটি আলাদাভাবে স্পষ্ট করে লিখবেন।
 ৬. প্রতি উত্তরের শেষে বিনীতভাবে ক্লায়েন্টের ফোন নম্বর বা সাইটের ঠিকানা চেয়ে নেবেন।`;
