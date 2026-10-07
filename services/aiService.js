@@ -90,6 +90,19 @@ function extractLeadInfo(text) {
 }
 
 /**
+ * Clean URLs in reply text to remove trailing parentheses or punctuation attached to URLs
+ * e.g., "https://oriainteriorbd.com/contact)" -> "https://oriainteriorbd.com/contact )"
+ */
+function cleanURLPunctuation(text) {
+  if (!text) return text;
+  return text.replace(/(https?:\/\/[^\s]+)/g, (match) => {
+    const cleaned = match.replace(/[).,;!\]]+$/, '');
+    const trailing = match.slice(cleaned.length);
+    return trailing ? `${cleaned} ${trailing}` : cleaned;
+  });
+}
+
+/**
  * Main reply generator for Live Web Chat, Facebook Messenger, and WhatsApp
  */
 async function generateAIReply({ sessionId, userMessage, platform = "website", senderId = null, userName = null }) {
@@ -135,16 +148,17 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
   // C. STEP 1: Search MongoDB Knowledge DB First!
   const dbMatch = await searchDBKnowledge(userMessage);
   if (dbMatch) {
+    const cleanMatch = cleanURLPunctuation(dbMatch);
     if (sessionId) {
       await ChatMessage.create({
         sessionId,
         senderId,
         role: "assistant",
-        text: dbMatch,
+        text: cleanMatch,
         platform,
       });
     }
-    return dbMatch;
+    return cleanMatch;
   }
 
   // D. Fetch past conversation history (last 10 messages)
@@ -167,7 +181,7 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
 
 আপনার কাছে আমাদের পুরো ওয়েবসাইট (https://oriainteriorbd.com)-এর সমস্ত পেজ ও তথ্যের অ্যাক্সেস রয়েছে:
 
-ওয়েবসাইট লিংকমূল্য সারণী (Sitemap & Direct Links):
+ওয়েবসাইট সায়টম্যাপ ও লিংকসমূহ (Sitemap & Direct Links):
 - মূল ওয়েবসাইট (Home): https://oriainteriorbd.com
 - সব সেবা ও সার্ভিস (Services): https://oriainteriorbd.com/services
   * রেসিডেন্সিয়াল ইন্টেরিয়র (ফ্ল্যাট/বাসা): https://oriainteriorbd.com/services/residential
@@ -187,10 +201,11 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
 গুরুত্বপূর্ণ নির্দেশনাবলী:
 ১. কখনই বলবেন না যে আপনি AI, Bot বা Automation। সর্বদা সরাসরি ওরিয়া ইন্টেরিয়র টিমের কর্মকর্তা হিসেবে উত্তর দেবেন।
 ২. উত্তর সবসময় অত্যন্ত বিনীত, প্রফেশনাল ও সহজ বাংলায় দেবেন (২৫-৫০ শব্দ)।
-৩. ক্লায়েন্ট যে বিষয জানতে চাইবে বা যে পেজ দেখতে চাইবে—সরাসরি উপরের সংশ্লিষ্ট ওয়েবসাইটের লিংক যুক্ত করে দেবেন যাতে ক্লায়েন্ট ক্লিক করে দেখতে পারে।
+৩. টেক্সটে সাধারণ প্রশ্নের উত্তর দেবেন। তবে ক্লায়েন্ট যদি পোর্টফোলিও, গ্যালারি, কন্টাক্ট বা বুকিং পেজ দেখতে চায়—সরাসরি উপরের সংশ্লিষ্ট ওয়েবসাইটের লিংক যুক্ত করে দেবেন।
 ৪. যেমন: পোর্টফোলিও দেখতে চাইলে https://oriainteriorbd.com/portfolio লিংকটি দেবেন; সার্ভিস দেখতে চাইলে https://oriainteriorbd.com/services লিংকটি দেবেন; অ্যাপয়েন্টমেন্টের জন্য https://oriainteriorbd.com/consultation দেবেন।
 ৫. হোয়াটসঅ্যাপে সরাসরি কথা বলতে চাইলে https://wa.me/8801334003388 লিংকটি দেবেন।
-৬. প্রতি উত্তরের শেষে বিনীতভাবে ক্লায়েন্টের ফোন নম্বর বা সাইটের ঠিকানা চেয়ে নেবেন।`;
+৬. যেকোনো ওয়েবসাইটের লিংক লেখার সময় লিংকের সাথে গায়ে-গায়ে কোনো বন্ধনী (parenthesis ')') বা চিহ্ন বা ডট যোগ করবেন না। লিংকটি আলাদাভাবে স্পেস দিয়ে স্পষ্ট করে লিখবেন।
+৭. প্রতি উত্তরের শেষে বিনীতভাবে ক্লায়েন্টের ফোন নম্বর বা সাইটের ঠিকানা চেয়ে নেবেন।`;
 
   // If no Gemini API key configured, use local smart fallback
   if (!apiKey) {
@@ -236,8 +251,7 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
         const aiResponseText = textPart?.text;
 
         if (aiResponseText && aiResponseText.trim()) {
-          const finalReply = aiResponseText.trim();
-
+          const finalReply = cleanURLPunctuation(aiResponseText.trim());
 
           if (sessionId) {
             await ChatMessage.create({
@@ -256,7 +270,7 @@ async function generateAIReply({ sessionId, userMessage, platform = "website", s
     }
   }
 
-  const fallbackText = getSmartFallbackReply(userMessage);
+  const fallbackText = cleanURLPunctuation(getSmartFallbackReply(userMessage));
   if (sessionId) {
     await ChatMessage.create({
       sessionId,
