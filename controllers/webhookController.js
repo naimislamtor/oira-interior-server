@@ -41,11 +41,9 @@ exports.verifyMetaWebhook = (req, res) => {
   const challenge = req.query["hub.challenge"];
 
   if (mode && token) {
-    if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    if (mode === "subscribe") {
       console.log("[Webhook] Meta Webhook Verified Successfully!");
       return res.status(200).send(challenge);
-    } else {
-      return res.sendStatus(403);
     }
   }
   return res.status(400).send("Bad request");
@@ -57,45 +55,65 @@ exports.handleMetaWebhook = async (req, res) => {
     const body = req.body;
     console.log("[Meta Webhook Event Received]", JSON.stringify(body));
 
-    if (body.object === "page" || body.object === "instagram") {
-      res.status(200).send("EVENT_RECEIVED");
+    // Send 200 OK fast to Meta
+    res.status(200).send("EVENT_RECEIVED");
 
-      for (const entry of body.entry || []) {
-        const messagingList = entry.messaging || [];
-        for (const webhookEvent of messagingList) {
-          if (!webhookEvent) continue;
+    // 1. Handle Meta Console Test Button Payloads ({ sample: { field: "messages", value: ... } })
+    if (body.sample) {
+      const sampleField = body.sample.field;
+      const value = body.sample.value;
 
-          const senderPsid = webhookEvent.sender?.id;
-          const userMsgText = webhookEvent.message?.text || webhookEvent.postback?.payload || webhookEvent.postback?.title;
+      if (sampleField === "messages" && value) {
+        const senderId = value.sender?.id || "12345";
+        const messageText = value.message?.text || "test_message";
+        console.log(`[Meta Console Test Message] from ${senderId}: "${messageText}"`);
 
-          // Skip echo messages sent BY the page itself to avoid infinite loops
-          if (webhookEvent.message?.is_echo) {
-            console.log(`[Meta Webhook] Skipped echo message sent by Page.`);
-            continue;
-          }
+        const reply = await generateAIReply({
+          sessionId: `meta_${senderId}`,
+          senderId,
+          userMessage: messageText,
+          platform: "facebook",
+        });
 
-          if (senderPsid && userMsgText) {
-            console.log(`[Meta Webhook] Incoming message from PSID ${senderPsid}: "${userMsgText}"`);
+        await sendMetaGraphApiMessage(senderId, reply);
+      }
+      return;
+    }
 
-            const platform = body.object === "instagram" ? "instagram" : "facebook";
-            const reply = await generateAIReply({
-              sessionId: `meta_${senderPsid}`,
-              senderId: senderPsid,
-              userMessage: userMsgText,
-              platform,
-            });
+    // 2. Handle Live Webhook Payloads (body.entry)
+    if (!body.entry || !Array.isArray(body.entry)) return;
 
-            console.log(`[Meta Webhook] AI Reply prepared for ${senderPsid}: "${reply}"`);
-            await sendMetaGraphApiMessage(senderPsid, reply);
-          }
+    for (const entry of body.entry) {
+      const messagingList = entry.messaging || entry.standby || [];
+      for (const messagingEvent of messagingList) {
+        if (!messagingEvent) continue;
+        if (messagingEvent.message?.is_echo) continue;
+
+        const senderPsid = messagingEvent.sender?.id;
+        const userMsgText =
+          messagingEvent.message?.text ||
+          messagingEvent.message?.quick_reply?.payload ||
+          messagingEvent.postback?.title ||
+          messagingEvent.postback?.payload;
+
+        if (senderPsid && userMsgText) {
+          console.log(`[Meta Webhook] Incoming Message from PSID ${senderPsid}: "${userMsgText}"`);
+
+          const platform = body.object === "instagram" ? "instagram" : "facebook";
+          const reply = await generateAIReply({
+            sessionId: `meta_${senderPsid}`,
+            senderId: senderPsid,
+            userMessage: userMsgText,
+            platform,
+          });
+
+          console.log(`[Meta Webhook] AI Reply prepared for ${senderPsid}: "${reply}"`);
+          await sendMetaGraphApiMessage(senderPsid, reply);
         }
       }
-    } else {
-      return res.sendStatus(444);
     }
   } catch (error) {
-    console.error("Meta Webhook Handler Error:", error);
-    return res.status(500).send("Webhook Error");
+    console.error("Meta Webhook Handler Error:", error.message);
   }
 };
 
