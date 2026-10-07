@@ -61,27 +61,30 @@ exports.handleMetaWebhook = async (req, res) => {
 
       // Process messaging entries asynchronously
       for (const entry of body.entry || []) {
-        const webhookEvent = entry.messaging?.[0];
-        if (webhookEvent && webhookEvent.message && !webhookEvent.message.is_echo) {
-          const senderPsid = webhookEvent.sender.id;
-          const userMsgText = webhookEvent.message.text;
+        const messagingList = entry.messaging || [];
+        for (const webhookEvent of messagingList) {
+          if (webhookEvent && webhookEvent.message && !webhookEvent.message.is_echo) {
+            const senderPsid = webhookEvent.sender?.id;
+            const userMsgText = webhookEvent.message?.text;
 
-          if (userMsgText) {
-            console.log(`[Meta Webhook] Message from PSID ${senderPsid}: "${userMsgText}"`);
+            if (senderPsid && userMsgText) {
+              console.log(`[Meta Webhook] Message from PSID ${senderPsid}: "${userMsgText}"`);
 
-            const platform = body.object === "instagram" ? "instagram" : "facebook";
-            const reply = await generateAIReply({
-              sessionId: `meta_${senderPsid}`,
-              senderId: senderPsid,
-              userMessage: userMsgText,
-              platform,
-            });
+              const platform = body.object === "instagram" ? "instagram" : "facebook";
+              const reply = await generateAIReply({
+                sessionId: `meta_${senderPsid}`,
+                senderId: senderPsid,
+                userMessage: userMsgText,
+                platform,
+              });
 
-            console.log(`[Meta Webhook] AI Reply prepared for ${senderPsid}: "${reply}"`);
-            await sendMetaGraphApiMessage(senderPsid, reply);
+              console.log(`[Meta Webhook] AI Reply prepared for ${senderPsid}: "${reply}"`);
+              await sendMetaGraphApiMessage(senderPsid, reply);
+            }
           }
         }
       }
+
     } else {
       return res.sendStatus(444);
     }
