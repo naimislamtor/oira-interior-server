@@ -5,10 +5,16 @@ const {
   createLead,
   updateLead,
   deleteLead,
+  getRealtimeLogs,
+  clearRealtimeLogs,
 } = require("../controllers/leadController");
 const { protect } = require("../middleware/authMiddleware");
 
-// All lead admin management endpoints can use protect middleware if required or public read for demo
+// Real-time live log monitor endpoints
+router.get("/live-logs", getRealtimeLogs);
+router.delete("/live-logs", clearRealtimeLogs);
+
+// All lead admin management endpoints
 router.get("/", protect, getLeads);
 router.post("/", protect, createLead);
 router.put("/:id", protect, updateLead);

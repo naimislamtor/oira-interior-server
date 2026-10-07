@@ -1,5 +1,6 @@
 const { generateAIReply } = require("../services/aiService");
 const Lead = require("../models/Lead");
+const { addLiveLog } = require("../utils/logger");
 
 /**
  * Send Facebook Messenger message using Meta Graph API
@@ -43,6 +44,7 @@ exports.verifyMetaWebhook = (req, res) => {
   if (mode && token) {
     if (mode === "subscribe") {
       console.log("[Webhook] Meta Webhook Verified Successfully!");
+      addLiveLog("Facebook Messenger", "WEBHOOK_VERIFY", "Meta Console", "Webhook Verification Request", "Verified Successfully", "Success");
       return res.status(200).send(challenge);
     }
   }
@@ -66,7 +68,6 @@ exports.handleMetaWebhook = async (req, res) => {
       if (sampleField === "messages" && value) {
         const senderId = value.sender?.id || "12345";
         const messageText = value.message?.text || "test_message";
-        console.log(`[Meta Console Test Message] from ${senderId}: "${messageText}"`);
 
         const reply = await generateAIReply({
           sessionId: `meta_${senderId}`,
@@ -75,6 +76,7 @@ exports.handleMetaWebhook = async (req, res) => {
           platform: "facebook",
         });
 
+        addLiveLog("Facebook Messenger (Test)", "DIRECT_MESSAGE", senderId, messageText, reply, "Success");
         await sendMetaGraphApiMessage(senderId, reply);
       }
       return;
@@ -97,9 +99,7 @@ exports.handleMetaWebhook = async (req, res) => {
           messagingEvent.postback?.payload;
 
         if (senderPsid && userMsgText) {
-          console.log(`[Meta Webhook] Incoming Message from PSID ${senderPsid}: "${userMsgText}"`);
-
-          const platform = body.object === "instagram" ? "instagram" : "facebook";
+          const platform = body.object === "instagram" ? "Instagram DM" : "Facebook Messenger";
           const reply = await generateAIReply({
             sessionId: `meta_${senderPsid}`,
             senderId: senderPsid,
@@ -107,13 +107,14 @@ exports.handleMetaWebhook = async (req, res) => {
             platform,
           });
 
-          console.log(`[Meta Webhook] AI Reply prepared for ${senderPsid}: "${reply}"`);
+          addLiveLog(platform, "DIRECT_MESSAGE", senderPsid, userMsgText, reply, "Success");
           await sendMetaGraphApiMessage(senderPsid, reply);
         }
       }
     }
   } catch (error) {
     console.error("Meta Webhook Handler Error:", error.message);
+    addLiveLog("Facebook Messenger", "ERROR", "System", "Error processing webhook", error.message, "Failed");
   }
 };
 
@@ -121,8 +122,6 @@ exports.handleMetaWebhook = async (req, res) => {
 exports.handleWhatsAppWebhook = async (req, res) => {
   try {
     const body = req.body;
-    console.log("[WhatsApp Webhook] Incoming event:", JSON.stringify(body, null, 2));
-
     res.status(200).send({ success: true });
 
     const entry = body.entry?.[0]?.changes?.[0]?.value;
@@ -131,8 +130,6 @@ exports.handleWhatsAppWebhook = async (req, res) => {
     if (message && message.text) {
       const fromPhone = message.from;
       const userText = message.text.body;
-
-      console.log(`[WhatsApp Webhook] Message from ${fromPhone}: "${userText}"`);
 
       await Lead.findOneAndUpdate(
         { phone: fromPhone },
@@ -147,15 +144,17 @@ exports.handleWhatsAppWebhook = async (req, res) => {
         { upsert: true, new: true }
       );
 
-      await generateAIReply({
+      const reply = await generateAIReply({
         sessionId: `wa_${fromPhone}`,
         senderId: fromPhone,
         userMessage: userText,
         platform: "whatsapp",
       });
+
+      addLiveLog("WhatsApp", "DIRECT_MESSAGE", fromPhone, userText, reply, "Success");
     }
   } catch (error) {
     console.error("WhatsApp Webhook Error:", error);
-    return res.status(500).send("WhatsApp Error");
+    addLiveLog("WhatsApp", "ERROR", "System", "WhatsApp error", error.message, "Failed");
   }
 };

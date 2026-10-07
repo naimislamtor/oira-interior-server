@@ -1,5 +1,6 @@
 const { generateAIReply } = require("../services/aiService");
 const ChatMessage = require("../models/ChatMessage");
+const { addLiveLog } = require("../utils/logger");
 
 // Handles live web chat send message
 exports.sendWebChatMessage = async (req, res) => {
@@ -17,6 +18,8 @@ exports.sendWebChatMessage = async (req, res) => {
       userName: userName || null,
     });
 
+    addLiveLog("Website Live Chat", "WEB_CHAT", sessionId, message.trim(), replyText, "Success");
+
     return res.json({
       success: true,
       data: {
@@ -26,7 +29,8 @@ exports.sendWebChatMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("Chat Controller Error:", error);
-    return res.status(500).json({ success: false, message: "Server error generating AI response" });
+    addLiveLog("Website Live Chat", "ERROR", req.body?.sessionId || "Unknown", req.body?.message || "", error.message, "Failed");
+    return res.status(500).json({ success: false, message: "Server error generating response" });
   }
 };
 

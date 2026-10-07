@@ -1,4 +1,22 @@
 const Lead = require("../models/Lead");
+const { getLiveLogs, clearLiveLogs } = require("../utils/logger");
+
+// Get in-memory real-time Webhook & AI logs for live monitoring
+exports.getRealtimeLogs = (req, res) => {
+  return res.json({
+    success: true,
+    logs: getLiveLogs(),
+  });
+};
+
+// Clear in-memory live logs
+exports.clearRealtimeLogs = (req, res) => {
+  clearLiveLogs();
+  return res.json({
+    success: true,
+    message: "Live logs cleared",
+  });
+};
 
 // Get all leads (with optional filtering)
 exports.getLeads = async (req, res) => {
