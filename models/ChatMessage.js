@@ -22,7 +22,6 @@ const chatMessageSchema = new mongoose.Schema(
     },
     platform: {
       type: String,
-      enum: ["website", "facebook", "whatsapp", "instagram"],
       default: "website",
     },
   },
