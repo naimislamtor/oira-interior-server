@@ -55,36 +55,41 @@ exports.verifyMetaWebhook = (req, res) => {
 exports.handleMetaWebhook = async (req, res) => {
   try {
     const body = req.body;
+    console.log("[Meta Webhook Event Received]", JSON.stringify(body));
 
     if (body.object === "page" || body.object === "instagram") {
       res.status(200).send("EVENT_RECEIVED");
 
-      // Process messaging entries asynchronously
       for (const entry of body.entry || []) {
         const messagingList = entry.messaging || [];
         for (const webhookEvent of messagingList) {
-          if (webhookEvent && webhookEvent.message && !webhookEvent.message.is_echo) {
-            const senderPsid = webhookEvent.sender?.id;
-            const userMsgText = webhookEvent.message?.text;
+          if (!webhookEvent) continue;
 
-            if (senderPsid && userMsgText) {
-              console.log(`[Meta Webhook] Message from PSID ${senderPsid}: "${userMsgText}"`);
+          const senderPsid = webhookEvent.sender?.id;
+          const userMsgText = webhookEvent.message?.text || webhookEvent.postback?.payload || webhookEvent.postback?.title;
 
-              const platform = body.object === "instagram" ? "instagram" : "facebook";
-              const reply = await generateAIReply({
-                sessionId: `meta_${senderPsid}`,
-                senderId: senderPsid,
-                userMessage: userMsgText,
-                platform,
-              });
+          // Skip echo messages sent BY the page itself to avoid infinite loops
+          if (webhookEvent.message?.is_echo) {
+            console.log(`[Meta Webhook] Skipped echo message sent by Page.`);
+            continue;
+          }
 
-              console.log(`[Meta Webhook] AI Reply prepared for ${senderPsid}: "${reply}"`);
-              await sendMetaGraphApiMessage(senderPsid, reply);
-            }
+          if (senderPsid && userMsgText) {
+            console.log(`[Meta Webhook] Incoming message from PSID ${senderPsid}: "${userMsgText}"`);
+
+            const platform = body.object === "instagram" ? "instagram" : "facebook";
+            const reply = await generateAIReply({
+              sessionId: `meta_${senderPsid}`,
+              senderId: senderPsid,
+              userMessage: userMsgText,
+              platform,
+            });
+
+            console.log(`[Meta Webhook] AI Reply prepared for ${senderPsid}: "${reply}"`);
+            await sendMetaGraphApiMessage(senderPsid, reply);
           }
         }
       }
-
     } else {
       return res.sendStatus(444);
     }
