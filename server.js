@@ -52,6 +52,7 @@ app.use("/api/chat", require("./routes/chatRoutes"));
 app.use("/api/webhook", require("./routes/webhookRoutes"));
 app.use("/api/admin/leads", require("./routes/leadRoutes"));
 app.use("/api/knowledge", require("./routes/knowledgeRoutes"));
+app.use("/api/gallery", require("./routes/galleryRoutes"));
 
 app.get("/", (req, res) => {
   res.json({ message: "Oria Interior Server Running ✅" });
