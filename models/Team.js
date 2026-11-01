@@ -4,7 +4,8 @@ const teamSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     designation: { type: String, required: true, trim: true },
-    imageUrl: { type: String, required: true, trim: true },
+      imagePublicId: { type: String, default: null },
+  imageUrl: { type: String, required: true, trim: true },
     order: { type: Number, default: 0 },
   },
   { timestamps: true }

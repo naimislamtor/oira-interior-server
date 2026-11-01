@@ -1,22 +1,22 @@
 const express = require("express");
 const router = express.Router();
-const {
-  getAllPortfolio,
-  getPortfolioById,
-  createPortfolio,
-  updatePortfolio,
-  deletePortfolio,
-} = require("../controllers/portfolioController");
+const { getAllPortfolio, getPortfolioById, createPortfolio, updatePortfolio, deletePortfolio } = require("../controllers/portfolioController");
 const { protect } = require("../middleware/authMiddleware");
-const upload = require("../utils/multerConfig");
+const { createUploader } = require("../utils/cloudinaryConfig");
 
-// Public routes
+const upload = createUploader("portfolio");
+
+const handleUpload = (req, res, next) => {
+  upload.single("image")(req, res, (err) => {
+    if (err) return next(err);
+    next();
+  });
+};
+
 router.get("/", getAllPortfolio);
 router.get("/:id", getPortfolioById);
-
-// Admin only routes
-router.post("/", protect, upload.single("image"), createPortfolio);
-router.put("/:id", protect, upload.single("image"), updatePortfolio);
+router.post("/", protect, handleUpload, createPortfolio);
+router.put("/:id", protect, handleUpload, updatePortfolio);
 router.delete("/:id", protect, deletePortfolio);
 
 module.exports = router;

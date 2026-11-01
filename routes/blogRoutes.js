@@ -1,22 +1,22 @@
 const express = require("express");
 const router = express.Router();
-const {
-  getAllBlogs,
-  getBlogById,
-  createBlog,
-  updateBlog,
-  deleteBlog,
-} = require("../controllers/blogController");
+const { getAllBlogs, getBlogById, createBlog, updateBlog, deleteBlog } = require("../controllers/blogController");
 const { protect } = require("../middleware/authMiddleware");
-const upload = require("../utils/multerConfig");
+const { createUploader } = require("../utils/cloudinaryConfig");
 
-// Public routes
+const upload = createUploader("blog");
+
+const handleUpload = (req, res, next) => {
+  upload.single("image")(req, res, (err) => {
+    if (err) return next(err);
+    next();
+  });
+};
+
 router.get("/", getAllBlogs);
 router.get("/:id", getBlogById);
-
-// Admin only routes
-router.post("/", protect, upload.single("image"), createBlog);
-router.put("/:id", protect, upload.single("image"), updateBlog);
+router.post("/", protect, handleUpload, createBlog);
+router.put("/:id", protect, handleUpload, updateBlog);
 router.delete("/:id", protect, deleteBlog);
 
 module.exports = router;

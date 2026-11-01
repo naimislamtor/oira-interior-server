@@ -7,6 +7,7 @@ const blogSchema = new mongoose.Schema(
     category: { type: String, required: true, trim: true },
     excerpt: { type: String, required: true },
     content: { type: String, required: true },
+        imagePublicId: { type: String, default: null },
     image: { type: String, required: true },
     readTime: { type: String },
   },

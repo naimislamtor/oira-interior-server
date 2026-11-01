@@ -53,9 +53,36 @@ app.use("/api/webhook", require("./routes/webhookRoutes"));
 app.use("/api/admin/leads", require("./routes/leadRoutes"));
 app.use("/api/knowledge", require("./routes/knowledgeRoutes"));
 app.use("/api/gallery", require("./routes/galleryRoutes"));
+app.use("/api/faq", require("./routes/faqRoutes"));
 
 app.get("/", (req, res) => {
   res.json({ message: "Oria Interior Server Running ✅" });
+});
+
+// Global error handler — catches multer, cloudinary, and other errors
+app.use((err, req, res, next) => {
+  console.error("Global error:", err.message || err);
+
+  // Multer file size error
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({ success: false, message: "ছবির সাইজ ১০MB-এর বেশি হবে না।" });
+  }
+
+  // Cloudinary / network timeout
+  if (err.code === "ETIMEDOUT" || err.name === "AggregateError" || (err.message && err.message.includes("ETIMEDOUT"))) {
+    return res.status(503).json({ success: false, message: "Cloudinary-তে সংযোগ হচ্ছে না। কিছুক্ষণ পরে আবার চেষ্টা করুন।" });
+  }
+
+  // Cloudinary API error
+  if (err.http_code) {
+    return res.status(err.http_code).json({ success: false, message: `Cloudinary error: ${err.message}` });
+  }
+
+  // Default server error
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Server error.",
+  });
 });
 
 const PORT = process.env.PORT || 5000;

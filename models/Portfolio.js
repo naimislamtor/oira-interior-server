@@ -12,6 +12,7 @@ const portfolioSchema = new mongoose.Schema(
     year: { type: String },
     description: { type: String },
     image: { type: String, required: true },
+    imagePublicId: { type: String, default: null },
     featured: { type: Boolean, default: false },
   },
   { timestamps: true },
