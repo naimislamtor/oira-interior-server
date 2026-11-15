@@ -1,6 +1,6 @@
 const cloudinary = require("cloudinary").v2;
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
+const streamifier = require("streamifier");
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -8,20 +8,38 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Create a multer-cloudinary uploader for a specific folder
-const createUploader = (folder) => {
-  const storage = new CloudinaryStorage({
-    cloudinary,
-    params: {
-      folder: `oria-interior/${folder}`,
-      allowed_formats: ["jpg", "jpeg", "png", "webp"],
-      transformation: [{ quality: "auto", fetch_format: "auto" }],
+// multer — memory storage (no disk, no cloudinary-storage dependency)
+const memoryStorage = multer.memoryStorage();
+
+const createUploader = (folder, fields = null) => {
+  const upload = multer({
+    storage: memoryStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith("image/")) cb(null, true);
+      else cb(new Error("Only image files are allowed"), false);
     },
   });
 
-  return multer({
-    storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  if (fields) return upload.fields(fields);
+  return upload;
+};
+
+// Upload a single buffer to Cloudinary (stream)
+const uploadToCloudinary = (buffer, folder, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: `oria-interior/${folder}`,
+        transformation: [{ quality: "auto", fetch_format: "auto" }],
+        ...options,
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(stream);
   });
 };
 
@@ -38,15 +56,19 @@ const deleteFromCloudinary = async (publicId) => {
 // Extract public_id from a Cloudinary URL
 const extractPublicId = (url) => {
   if (!url || !url.includes("cloudinary")) return null;
-  // e.g. https://res.cloudinary.com/yjxq2hci/image/upload/v123/oria-interior/portfolio/abc.jpg
   const parts = url.split("/");
   const uploadIndex = parts.indexOf("upload");
   if (uploadIndex === -1) return null;
-  // Skip version segment (v1234...)
   const afterUpload = parts.slice(uploadIndex + 1);
   if (afterUpload[0] && afterUpload[0].startsWith("v")) afterUpload.shift();
   const withExt = afterUpload.join("/");
-  return withExt.replace(/\.[^.]+$/, ""); // remove extension
+  return withExt.replace(/\.[^.]+$/, "");
 };
 
-module.exports = { cloudinary, createUploader, deleteFromCloudinary, extractPublicId };
+module.exports = {
+  cloudinary,
+  createUploader,
+  uploadToCloudinary,
+  deleteFromCloudinary,
+  extractPublicId,
+};

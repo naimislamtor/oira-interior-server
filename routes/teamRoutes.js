@@ -4,13 +4,8 @@ const { getAllTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember 
 const { protect } = require("../middleware/authMiddleware");
 const { createUploader } = require("../utils/cloudinaryConfig");
 
-const upload = createUploader("team");
-
 const handleUpload = (req, res, next) => {
-  upload.single("photo")(req, res, (err) => {
-    if (err) return next(err);
-    next();
-  });
+  createUploader("team").single("photo")(req, res, err => err ? next(err) : next());
 };
 
 router.get("/", getAllTeamMembers);

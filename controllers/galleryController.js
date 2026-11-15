@@ -1,17 +1,15 @@
 const GalleryItem = require("../models/GalleryItem");
-const { deleteFromCloudinary, extractPublicId } = require("../utils/cloudinaryConfig");
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require("../utils/cloudinaryConfig");
 
-// Get all gallery items
 exports.getGalleryItems = async (req, res) => {
   try {
-    const items = await GalleryItem.find({}).sort({ createdAt: -1 });
-    return res.json({ success: true, count: items.length, data: items });
+    const items = await GalleryItem.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: items });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Error fetching gallery items" });
+    res.status(500).json({ success: false, message: "Error fetching gallery items" });
   }
 };
 
-// Create gallery item — accepts file uploads (beforeImage, afterImage)
 exports.createGalleryItem = async (req, res) => {
   try {
     const { title, category, description } = req.body;
@@ -21,11 +19,22 @@ exports.createGalleryItem = async (req, res) => {
     const beforeFile = files.beforeImage?.[0];
     const afterFile  = files.afterImage?.[0];
 
-    // Allow either uploaded file OR manually provided URL
-    const beforeImage = beforeFile ? beforeFile.path : req.body.beforeImage;
-    const afterImage  = afterFile  ? afterFile.path  : req.body.afterImage;
-    const beforePublicId = beforeFile ? beforeFile.filename : null;
-    const afterPublicId  = afterFile  ? afterFile.filename  : null;
+    let beforeImage = req.body.beforeImage;
+    let afterImage  = req.body.afterImage;
+    let beforePublicId = null;
+    let afterPublicId  = null;
+
+    if (beforeFile) {
+      const result = await uploadToCloudinary(beforeFile.buffer, "gallery");
+      beforeImage = result.secure_url;
+      beforePublicId = result.public_id;
+    }
+
+    if (afterFile) {
+      const result = await uploadToCloudinary(afterFile.buffer, "gallery");
+      afterImage = result.secure_url;
+      afterPublicId = result.public_id;
+    }
 
     if (!beforeImage || !afterImage) {
       return res.status(400).json({ success: false, message: "Before and After images are required." });
@@ -42,11 +51,10 @@ exports.createGalleryItem = async (req, res) => {
     return res.status(201).json({ success: true, data: newItem, message: "Transformation added!" });
   } catch (error) {
     console.error("Create Gallery Error:", error);
-    return res.status(500).json({ success: false, message: "Error creating gallery item" });
+    return res.status(500).json({ success: false, message: error.message || "Error creating gallery item" });
   }
 };
 
-// Update gallery item
 exports.updateGalleryItem = async (req, res) => {
   try {
     const item = await GalleryItem.findById(req.params.id);
@@ -65,8 +73,9 @@ exports.updateGalleryItem = async (req, res) => {
     if (beforeFile) {
       if (item.beforePublicId) await deleteFromCloudinary(item.beforePublicId);
       else if (item.beforeImage) await deleteFromCloudinary(extractPublicId(item.beforeImage));
-      updateData.beforeImage = beforeFile.path;
-      updateData.beforePublicId = beforeFile.filename;
+      const result = await uploadToCloudinary(beforeFile.buffer, "gallery");
+      updateData.beforeImage = result.secure_url;
+      updateData.beforePublicId = result.public_id;
     } else if (req.body.beforeImage) {
       updateData.beforeImage = req.body.beforeImage;
     }
@@ -74,8 +83,9 @@ exports.updateGalleryItem = async (req, res) => {
     if (afterFile) {
       if (item.afterPublicId) await deleteFromCloudinary(item.afterPublicId);
       else if (item.afterImage) await deleteFromCloudinary(extractPublicId(item.afterImage));
-      updateData.afterImage = afterFile.path;
-      updateData.afterPublicId = afterFile.filename;
+      const result = await uploadToCloudinary(afterFile.buffer, "gallery");
+      updateData.afterImage = result.secure_url;
+      updateData.afterPublicId = result.public_id;
     } else if (req.body.afterImage) {
       updateData.afterImage = req.body.afterImage;
     }
@@ -84,11 +94,10 @@ exports.updateGalleryItem = async (req, res) => {
     return res.json({ success: true, data: updated, message: "Gallery item updated!" });
   } catch (error) {
     console.error("Update Gallery Error:", error);
-    return res.status(500).json({ success: false, message: "Error updating gallery item" });
+    return res.status(500).json({ success: false, message: error.message || "Error updating gallery item" });
   }
 };
 
-// Delete gallery item
 exports.deleteGalleryItem = async (req, res) => {
   try {
     const item = await GalleryItem.findByIdAndDelete(req.params.id);

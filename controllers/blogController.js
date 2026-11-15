@@ -1,6 +1,6 @@
 const Blog = require("../models/Blog");
 const mongoose = require("mongoose");
-const { deleteFromCloudinary, extractPublicId } = require("../utils/cloudinaryConfig");
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require("../utils/cloudinaryConfig");
 
 const slugify = (text) => {
   if (!text) return "";
@@ -8,7 +8,6 @@ const slugify = (text) => {
     .replace(/[\s\p{P}\p{S}]+/gu, "-").replace(/^-+|-+$/g, "") || "post";
 };
 
-// @GET /api/blog (public)
 const getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
@@ -21,7 +20,6 @@ const getAllBlogs = async (req, res) => {
   }
 };
 
-// @GET /api/blog/:id (public)
 const getBlogById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -34,7 +32,6 @@ const getBlogById = async (req, res) => {
   }
 };
 
-// @POST /api/blog (admin only)
 const createBlog = async (req, res) => {
   try {
     const { title, category, excerpt, content, readTime } = req.body;
@@ -43,23 +40,25 @@ const createBlog = async (req, res) => {
     if (!req.file)
       return res.status(400).json({ success: false, message: "Blog image is required." });
 
+    // Upload to Cloudinary
+    const result = await uploadToCloudinary(req.file.buffer, "blog");
+
     let slug = slugify(title);
     if (await Blog.findOne({ slug })) slug = `${slug}-${Date.now().toString().slice(-4)}`;
 
     const blog = await Blog.create({
       title, slug, category, excerpt, content, readTime,
-      image: req.file.path,
-      imagePublicId: req.file.filename,
+      image: result.secure_url,
+      imagePublicId: result.public_id,
     });
 
     res.status(201).json({ success: true, message: "Blog post added!", data: blog });
   } catch (error) {
     console.error("Create blog error:", error);
-    res.status(500).json({ success: false, message: "Server error." });
+    res.status(500).json({ success: false, message: error.message || "Server error." });
   }
 };
 
-// @PUT /api/blog/:id (admin only)
 const updateBlog = async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
@@ -76,19 +75,20 @@ const updateBlog = async (req, res) => {
     if (req.file) {
       if (blog.imagePublicId) await deleteFromCloudinary(blog.imagePublicId);
       else if (blog.image) await deleteFromCloudinary(extractPublicId(blog.image));
-      updateData.image = req.file.path;
-      updateData.imagePublicId = req.file.filename;
+
+      const result = await uploadToCloudinary(req.file.buffer, "blog");
+      updateData.image = result.secure_url;
+      updateData.imagePublicId = result.public_id;
     }
 
     const updated = await Blog.findByIdAndUpdate(req.params.id, updateData, { new: true });
     res.json({ success: true, message: "Blog post updated!", data: updated });
   } catch (error) {
     console.error("Update blog error:", error);
-    res.status(500).json({ success: false, message: "Server error." });
+    res.status(500).json({ success: false, message: error.message || "Server error." });
   }
 };
 
-// @DELETE /api/blog/:id (admin only)
 const deleteBlog = async (req, res) => {
   try {
     const blog = await Blog.findByIdAndDelete(req.params.id);

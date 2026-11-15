@@ -4,13 +4,8 @@ const { getGalleryItems, createGalleryItem, updateGalleryItem, deleteGalleryItem
 const { protect } = require("../middleware/authMiddleware");
 const { createUploader } = require("../utils/cloudinaryConfig");
 
-const upload = createUploader("gallery");
-
 const handleUpload = (req, res, next) => {
-  upload.fields([{ name: "beforeImage", maxCount: 1 }, { name: "afterImage", maxCount: 1 }])(req, res, (err) => {
-    if (err) return next(err);
-    next();
-  });
+  createUploader("gallery", [{ name: "beforeImage", maxCount: 1 }, { name: "afterImage", maxCount: 1 }])(req, res, err => err ? next(err) : next());
 };
 
 router.get("/", getGalleryItems);
