@@ -2,15 +2,11 @@ const express = require("express");
 const router = express.Router();
 const { getAllTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember } = require("../controllers/teamController");
 const { protect } = require("../middleware/authMiddleware");
-const { createUploader } = require("../utils/cloudinaryConfig");
-
-const handleUpload = (req, res, next) => {
-  createUploader("team").single("photo")(req, res, err => err ? next(err) : next());
-};
+const { upload } = require("../utils/cloudinaryConfig");
 
 router.get("/", getAllTeamMembers);
-router.post("/", protect, handleUpload, createTeamMember);
-router.put("/:id", protect, handleUpload, updateTeamMember);
+router.post("/", protect, upload.single("photo"), createTeamMember);
+router.put("/:id", protect, upload.single("photo"), updateTeamMember);
 router.delete("/:id", protect, deleteTeamMember);
 
 module.exports = router;

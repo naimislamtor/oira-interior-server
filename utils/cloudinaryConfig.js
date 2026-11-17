@@ -8,24 +8,17 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// multer — memory storage (no disk, no cloudinary-storage dependency)
-const memoryStorage = multer.memoryStorage();
+// multer with memory storage — works with any multer version
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"), false);
+  },
+});
 
-const createUploader = (folder, fields = null) => {
-  const upload = multer({
-    storage: memoryStorage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-    fileFilter: (req, file, cb) => {
-      if (file.mimetype.startsWith("image/")) cb(null, true);
-      else cb(new Error("Only image files are allowed"), false);
-    },
-  });
-
-  if (fields) return upload.fields(fields);
-  return upload;
-};
-
-// Upload a single buffer to Cloudinary (stream)
+// Upload buffer to Cloudinary via stream
 const uploadToCloudinary = (buffer, folder, options = {}) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -43,7 +36,7 @@ const uploadToCloudinary = (buffer, folder, options = {}) => {
   });
 };
 
-// Delete image from Cloudinary using public_id
+// Delete from Cloudinary
 const deleteFromCloudinary = async (publicId) => {
   if (!publicId) return;
   try {
@@ -53,7 +46,7 @@ const deleteFromCloudinary = async (publicId) => {
   }
 };
 
-// Extract public_id from a Cloudinary URL
+// Extract public_id from Cloudinary URL
 const extractPublicId = (url) => {
   if (!url || !url.includes("cloudinary")) return null;
   const parts = url.split("/");
@@ -61,14 +54,7 @@ const extractPublicId = (url) => {
   if (uploadIndex === -1) return null;
   const afterUpload = parts.slice(uploadIndex + 1);
   if (afterUpload[0] && afterUpload[0].startsWith("v")) afterUpload.shift();
-  const withExt = afterUpload.join("/");
-  return withExt.replace(/\.[^.]+$/, "");
+  return afterUpload.join("/").replace(/\.[^.]+$/, "");
 };
 
-module.exports = {
-  cloudinary,
-  createUploader,
-  uploadToCloudinary,
-  deleteFromCloudinary,
-  extractPublicId,
-};
+module.exports = { upload, uploadToCloudinary, deleteFromCloudinary, extractPublicId };
