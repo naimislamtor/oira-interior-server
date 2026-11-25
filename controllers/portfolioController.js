@@ -27,10 +27,14 @@ const createPortfolio = async (req, res) => {
   try {
     const { title, category, location, year, area, duration, client, description, featured, tags } = req.body;
     if (!title || !category) return res.status(400).json({ success: false, message: "Title and category are required." });
-    if (!req.file) return res.status(400).json({ success: false, message: "Project cover image is required." });
 
-    // Upload to Cloudinary
-    const result = await uploadToCloudinary(req.file.buffer, "portfolio");
+    // express-fileupload: req.files.image
+    if (!req.files || !req.files.image) {
+      return res.status(400).json({ success: false, message: "Project cover image is required." });
+    }
+
+    const imageFile = req.files.image;
+    const result = await uploadToCloudinary(imageFile.data, "portfolio");
 
     const project = await Portfolio.create({
       title, category, location, year, area, duration, client, description,
@@ -58,11 +62,11 @@ const updatePortfolio = async (req, res) => {
     if (updateData.tags && !Array.isArray(updateData.tags)) updateData.tags = updateData.tags.split(",").map(t => t.trim());
     if (updateData.title && updateData.title !== project.title) delete updateData.slug;
 
-    if (req.file) {
+    if (req.files && req.files.image) {
       if (project.imagePublicId) await deleteFromCloudinary(project.imagePublicId);
       else if (project.image) await deleteFromCloudinary(extractPublicId(project.image));
 
-      const result = await uploadToCloudinary(req.file.buffer, "portfolio");
+      const result = await uploadToCloudinary(req.files.image.data, "portfolio");
       updateData.image = result.secure_url;
       updateData.imagePublicId = result.public_id;
     }
@@ -97,12 +101,14 @@ const addGalleryImages = async (req, res) => {
   try {
     const project = await Portfolio.findById(req.params.id);
     if (!project) return res.status(404).json({ success: false, message: "Project not found." });
-    if (!req.files || req.files.length === 0) return res.status(400).json({ success: false, message: "No images uploaded." });
+    if (!req.files || !req.files.images) return res.status(400).json({ success: false, message: "No images uploaded." });
 
+    // express-fileupload: single file = object, multiple = array
+    const files = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
     const captions = req.body.captions ? JSON.parse(req.body.captions) : [];
 
-    const uploadPromises = req.files.map((file, i) =>
-      uploadToCloudinary(file.buffer, "portfolio").then(result => ({
+    const uploadPromises = files.map((file, i) =>
+      uploadToCloudinary(file.data, "portfolio").then(result => ({
         url: result.secure_url,
         publicId: result.public_id,
         caption: captions[i] || "",

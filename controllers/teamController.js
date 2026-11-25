@@ -18,8 +18,8 @@ const createTeamMember = async (req, res) => {
     let imageUrl = req.body.imageUrl || "";
     let imagePublicId = null;
 
-    if (req.file) {
-      const result = await uploadToCloudinary(req.file.buffer, "team");
+    if (req.files && req.files.photo) {
+      const result = await uploadToCloudinary(req.files.photo.data, "team");
       imageUrl = result.secure_url;
       imagePublicId = result.public_id;
     }
@@ -41,11 +41,11 @@ const updateTeamMember = async (req, res) => {
 
     const updateData = { ...req.body };
 
-    if (req.file) {
+    if (req.files && req.files.photo) {
       if (member.imagePublicId) await deleteFromCloudinary(member.imagePublicId);
       else if (member.imageUrl) await deleteFromCloudinary(extractPublicId(member.imageUrl));
 
-      const result = await uploadToCloudinary(req.file.buffer, "team");
+      const result = await uploadToCloudinary(req.files.photo.data, "team");
       updateData.imageUrl = result.secure_url;
       updateData.imagePublicId = result.public_id;
     }
@@ -53,7 +53,6 @@ const updateTeamMember = async (req, res) => {
     const updated = await Team.findByIdAndUpdate(req.params.id, updateData, { new: true });
     res.json({ success: true, message: "Team member updated!", data: updated });
   } catch (error) {
-    console.error("Update team error:", error);
     res.status(500).json({ success: false, message: error.message || "Server error." });
   }
 };

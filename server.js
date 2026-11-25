@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
+const fileUpload = require("express-fileupload");
 const connectDB = require("./config/db");
 
 dotenv.config();
@@ -38,6 +39,11 @@ app.use(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(fileUpload({
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  abortOnLimit: true,
+  useTempFiles: false, // keep files in memory as Buffer
+}));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/admin", require("./routes/adminRoutes"));

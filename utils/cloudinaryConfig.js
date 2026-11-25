@@ -1,6 +1,4 @@
 const cloudinary = require("cloudinary").v2;
-const multer = require("multer");
-const streamifier = require("streamifier");
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -8,31 +6,22 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// multer with memory storage — works with any multer version
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) cb(null, true);
-    else cb(new Error("Only image files are allowed"), false);
-  },
-});
-
-// Upload buffer to Cloudinary via stream
+// Upload a buffer directly to Cloudinary
 const uploadToCloudinary = (buffer, folder, options = {}) => {
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: `oria-interior/${folder}`,
-        transformation: [{ quality: "auto", fetch_format: "auto" }],
-        ...options,
-      },
-      (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
-      }
-    );
-    streamifier.createReadStream(buffer).pipe(stream);
+    cloudinary.uploader
+      .upload_stream(
+        {
+          folder: `oria-interior/${folder}`,
+          transformation: [{ quality: "auto", fetch_format: "auto" }],
+          ...options,
+        },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        }
+      )
+      .end(buffer);
   });
 };
 
@@ -57,4 +46,4 @@ const extractPublicId = (url) => {
   return afterUpload.join("/").replace(/\.[^.]+$/, "");
 };
 
-module.exports = { upload, uploadToCloudinary, deleteFromCloudinary, extractPublicId };
+module.exports = { cloudinary, uploadToCloudinary, deleteFromCloudinary, extractPublicId };

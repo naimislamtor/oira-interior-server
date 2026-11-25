@@ -11,9 +11,6 @@ const slugify = (text) => {
 const getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
-    for (let b of blogs) {
-      if (!b.slug) { b.slug = slugify(b.title); await b.save(); }
-    }
     res.json({ success: true, data: blogs });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error." });
@@ -37,11 +34,10 @@ const createBlog = async (req, res) => {
     const { title, category, excerpt, content, readTime } = req.body;
     if (!title || !category || !excerpt || !content)
       return res.status(400).json({ success: false, message: "Title, category, excerpt and content are required." });
-    if (!req.file)
+    if (!req.files || !req.files.image)
       return res.status(400).json({ success: false, message: "Blog image is required." });
 
-    // Upload to Cloudinary
-    const result = await uploadToCloudinary(req.file.buffer, "blog");
+    const result = await uploadToCloudinary(req.files.image.data, "blog");
 
     let slug = slugify(title);
     if (await Blog.findOne({ slug })) slug = `${slug}-${Date.now().toString().slice(-4)}`;
@@ -72,11 +68,11 @@ const updateBlog = async (req, res) => {
       updateData.slug = slug;
     }
 
-    if (req.file) {
+    if (req.files && req.files.image) {
       if (blog.imagePublicId) await deleteFromCloudinary(blog.imagePublicId);
       else if (blog.image) await deleteFromCloudinary(extractPublicId(blog.image));
 
-      const result = await uploadToCloudinary(req.file.buffer, "blog");
+      const result = await uploadToCloudinary(req.files.image.data, "blog");
       updateData.image = result.secure_url;
       updateData.imagePublicId = result.public_id;
     }
